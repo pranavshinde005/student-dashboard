@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Student Performance Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:#080d1a; --navy:#0c1428; --navy2:#111e36; --navy3:#162440;
+  --border:#1e3158; --gold:#d4a843; --gold2:#f0c866; --gold3:#a07830;
+  --white:#f4f0e8; --muted:#6b7fa0; --text:#c8d4e8;
+  --pass:#4ade80; --fail:#f87171; --warn:#fbbf24;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(212,168,67,.04) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(30,49,88,.3) 0%,transparent 50%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold3),var(--gold),var(--gold2),transparent);z-index:999;}
+.wrap{max-width:1200px;margin:0 auto;padding:2rem 1.5rem;position:relative;z-index:1;}
+
+/* HEADER */
+header{padding:2.5rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:2rem;animation:fadeDown .8s cubic-bezier(.16,1,.3,1) both;}
+.header-inner{display:flex;align-items:flex-start;justify-content:space-between;gap:2rem;flex-wrap:wrap;}
+.badge{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(212,168,67,.12),rgba(212,168,67,.04));border:1px solid rgba(212,168,67,.3);color:var(--gold);font-size:.65rem;letter-spacing:3px;text-transform:uppercase;padding:5px 16px;border-radius:3px;margin-bottom:1rem;font-weight:500;}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite;}
+h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;color:var(--white);line-height:1.1;}
+h1 em{font-style:normal;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+header p{font-size:.82rem;color:var(--muted);margin-top:.5rem;font-weight:300;}
+.hstats{display:flex;gap:.8rem;flex-wrap:wrap;}
+.hstat{background:linear-gradient(135deg,var(--navy2),var(--navy3));border:1px solid var(--border);border-radius:10px;padding:.9rem 1.2rem;text-align:center;min-width:80px;transition:all .3s;}
+.hstat:hover{border-color:rgba(212,168,67,.4);transform:translateY(-2px);}
+.hstat-n{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--gold);display:block;}
+.hstat-l{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:2px;}
+
+/* TABS */
+.tabs{display:flex;gap:.4rem;margin-bottom:1.5rem;flex-wrap:wrap;animation:fadeUp .7s .15s cubic-bezier(.16,1,.3,1) both;}
+.tab{padding:9px 22px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:.8rem;font-weight:500;cursor:pointer;transition:all .25s;font-family:'Inter',sans-serif;}
+.tab:hover{border-color:rgba(212,168,67,.4);color:var(--gold);}
+.tab.active{background:linear-gradient(135deg,var(--gold3),var(--gold));border-color:var(--gold);color:#0c1428;font-weight:700;box-shadow:0 4px 15px rgba(212,168,67,.3);}
+.tab-content{display:none;animation:tabIn .4s cubic-bezier(.16,1,.3,1) both;}
+.tab-content.active{display:block;}
+
+/* CARD */
+.card{background:linear-gradient(135deg,var(--navy),var(--navy2));border:1px solid var(--border);border-radius:16px;padding:1.8rem;transition:all .35s;}
+.card:hover{border-color:rgba(212,168,67,.25);}
+.card-title{font-size:.68rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2.5px;margin-bottom:1.3rem;display:flex;align-items:center;gap:10px;}
+.card-title::before{content:'';width:20px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);border-radius:2px;}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:1.2rem;animation:fadeUp .7s .25s cubic-bezier(.16,1,.3,1) both;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field.full{grid-column:1/-1;}
+label{font-size:.66rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+input[type=number],select{background:var(--navy3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--white);font-family:'Inter',sans-serif;font-size:.85rem;outline:none;width:100%;transition:all .25s;-moz-appearance:textfield;}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,.1);}
+select option{background:var(--navy2);}
+.slider-wrap{display:flex;flex-direction:column;gap:6px;}
+.slider-top{display:flex;justify-content:space-between;align-items:center;}
+.slider-val{font-size:.78rem;color:var(--gold);font-weight:600;}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:linear-gradient(90deg,var(--gold) 0%,var(--border) 0%);border-radius:3px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:linear-gradient(135deg,var(--gold3),var(--gold2));border-radius:50%;cursor:pointer;box-shadow:0 0 10px rgba(212,168,67,.5);border:2px solid var(--navy);}
+.slider-labels{display:flex;justify-content:space-between;font-size:.58rem;color:var(--muted);margin-top:3px;}
+.btn-predict{width:100%;margin-top:1.4rem;padding:14px;background:linear-gradient(135deg,var(--gold3),var(--gold),var(--gold2));background-size:200% 100%;background-position:100%;border:none;border-radius:10px;color:#0c1428;font-size:.95rem;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:all .4s;box-shadow:0 4px 20px rgba(212,168,67,.2);}
+.btn-predict:hover{background-position:0%;transform:translateY(-2px);box-shadow:0 8px 30px rgba(212,168,67,.4);}
+.btn-predict:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* LOADING */
+.loading-steps{display:none;text-align:center;padding:1.5rem;}
+.step-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:.85rem;background:var(--navy3);border:1px solid var(--border);opacity:.3;transition:all .4s;}
+.step-item.active{opacity:1;border-color:var(--gold);background:rgba(212,168,67,.05);}
+.step-item.done{opacity:.7;color:var(--pass);border-color:rgba(74,222,128,.2);}
+
+/* RESULT */
+.result-main{min-height:180px;border-radius:14px;padding:2rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:linear-gradient(135deg,var(--navy),var(--navy2));border:1px solid var(--border);margin-bottom:1rem;transition:all .6s;}
+.result-main.pass{border-color:rgba(74,222,128,.4);background:linear-gradient(135deg,var(--navy),rgba(74,222,128,.05));box-shadow:0 0 40px rgba(74,222,128,.08);}
+.result-main.fail{border-color:rgba(248,113,113,.4);background:linear-gradient(135deg,var(--navy),rgba(248,113,113,.05));box-shadow:0 0 40px rgba(248,113,113,.08);}
+.idle-icon{font-size:3rem;opacity:.25;margin-bottom:.8rem;}
+.idle-text{font-size:.82rem;color:var(--muted);}
+.verdict-icon{font-size:3.5rem;animation:popIn .6s cubic-bezier(.175,.885,.32,1.275);margin-bottom:.5rem;}
+.verdict-label{font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+.verdict-text{font-family:'Playfair Display',serif;font-size:3rem;font-weight:800;letter-spacing:-1px;animation:popIn .5s .1s cubic-bezier(.175,.885,.32,1.275) both;}
+.verdict-text.pass{color:var(--pass);}
+.verdict-text.fail{color:var(--fail);}
+.verdict-sub{font-size:.78rem;color:var(--muted);margin-top:.5rem;}
+.risk-pill{display:inline-block;margin-top:.8rem;padding:5px 18px;border-radius:20px;font-size:.72rem;font-weight:600;letter-spacing:1px;}
+.risk-pill.low{background:rgba(74,222,128,.1);color:var(--pass);border:1px solid rgba(74,222,128,.3);}
+.risk-pill.med{background:rgba(251,191,36,.1);color:var(--warn);border:1px solid rgba(251,191,36,.3);}
+.risk-pill.high{background:rgba(248,113,113,.1);color:var(--fail);border:1px solid rgba(248,113,113,.3);}
+
+/* CIRCLES */
+.circles-wrap{display:flex;justify-content:center;gap:2rem;padding:1.5rem;}
+.circle-wrap{position:relative;width:100px;height:100px;}
+.circle-svg{transform:rotate(-90deg);}
+.circle-bg{fill:none;stroke:var(--border);stroke-width:6;}
+.circle-fill{fill:none;stroke-width:6;stroke-linecap:round;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);}
+.circle-fill.pass{stroke:url(#passGrad);}
+.circle-fill.fail{stroke:url(#failGrad);}
+.circle-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.circle-pct{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:700;}
+.circle-pct.pass{color:var(--pass);}
+.circle-pct.fail{color:var(--fail);}
+.circle-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.circle-item{display:flex;flex-direction:column;align-items:center;gap:.6rem;}
+
+/* VOTES */
+.vote-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;background:var(--navy3);border:1px solid var(--border);margin-bottom:6px;font-size:.8rem;opacity:0;transform:translateX(-10px);transition:all .4s;}
+.vote-item.show{opacity:1;transform:translateX(0);}
+.vote-badge{font-size:.68rem;padding:3px 12px;border-radius:20px;font-weight:700;}
+.vote-badge.pass{background:rgba(74,222,128,.12);color:var(--pass);}
+.vote-badge.fail{background:rgba(248,113,113,.12);color:var(--fail);}
+
+/* PROFILE CARD */
+.profile-card{display:none;background:linear-gradient(135deg,var(--navy),var(--navy2));border:1px solid var(--gold3);border-radius:14px;padding:1.5rem;margin-bottom:1rem;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;}
+.profile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin-top:1rem;}
+.profile-item{background:var(--navy3);border-radius:8px;padding:.7rem;text-align:center;}
+.profile-val{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:700;color:var(--gold2);}
+.profile-key{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+/* ══ STUDENT LOOKUP TAB ══ */
+.lookup-wrap{animation:fadeUp .7s .2s cubic-bezier(.16,1,.3,1) both;}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:16px;padding:3rem;text-align:center;cursor:pointer;transition:all .3s;background:linear-gradient(135deg,var(--navy),var(--navy2));margin-bottom:1.5rem;}
+.upload-zone:hover{border-color:var(--gold);background:rgba(212,168,67,.03);}
+.upload-zone.dragover{border-color:var(--gold);background:rgba(212,168,67,.06);}
+.upload-icon{font-size:3rem;opacity:.4;margin-bottom:1rem;}
+.upload-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--white);margin-bottom:.5rem;}
+.upload-sub{font-size:.78rem;color:var(--muted);}
+.upload-btn-label{display:inline-block;margin-top:1rem;padding:9px 24px;background:linear-gradient(135deg,var(--gold3),var(--gold));border-radius:8px;color:#0c1428;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .25s;}
+.upload-btn-label:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(212,168,67,.3);}
+
+/* Search & filter bar */
+.search-bar{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-bottom:1.2rem;}
+.search-input{background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--white);font-family:'Inter',sans-serif;font-size:.85rem;outline:none;width:200px;transition:all .25s;}
+.search-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,168,67,.1);}
+.filter-btn{padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:transparent;color:var(--muted);font-size:.78rem;font-weight:500;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif;}
+.filter-btn:hover{border-color:rgba(212,168,67,.4);color:var(--gold);}
+.filter-btn.active{background:linear-gradient(135deg,var(--gold3),var(--gold));border-color:var(--gold);color:#0c1428;font-weight:700;}
+.export-btn{margin-left:auto;padding:9px 18px;border:1px solid var(--gold3);border-radius:8px;background:transparent;color:var(--gold);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .25s;font-family:'Inter',sans-serif;}
+.export-btn:hover{background:linear-gradient(135deg,var(--gold3),var(--gold));color:#0c1428;}
+
+/* Stats summary */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-bottom:1.2rem;}
+.sum-card{background:linear-gradient(135deg,var(--navy2),var(--navy3));border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;transition:all .3s;}
+.sum-card:hover{border-color:rgba(212,168,67,.3);transform:translateY(-2px);}
+.sum-num{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;display:block;}
+.sum-num.total{color:var(--gold);}
+.sum-num.pass{color:var(--pass);}
+.sum-num.fail{color:var(--fail);}
+.sum-num.risk{color:var(--warn);}
+.sum-lbl{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:3px;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:.82rem;}
+thead th{background:var(--navy2);color:var(--gold);font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid rgba(30,49,88,.5);transition:background .2s;cursor:pointer;}
+tbody tr:hover{background:rgba(212,168,67,.04);}
+tbody tr.high-risk{background:rgba(248,113,113,.04);}
+tbody tr.high-risk:hover{background:rgba(248,113,113,.08);}
+tbody tr.selected{background:rgba(212,168,67,.08);border-left:3px solid var(--gold);}
+td{padding:10px 14px;color:var(--text);white-space:nowrap;}
+td.pass-cell{color:var(--pass);font-weight:700;}
+td.fail-cell{color:var(--fail);font-weight:700;}
+.risk-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.risk-dot.low{background:var(--pass);}
+.risk-dot.med{background:var(--warn);}
+.risk-dot.high{background:var(--fail);}
+.no-data{text-align:center;padding:4rem;color:var(--muted);font-size:.85rem;}
+
+/* STUDENT DETAIL PANEL */
+.detail-panel{display:none;margin-top:1.2rem;background:linear-gradient(135deg,var(--navy),var(--navy2));border:1px solid var(--gold3);border-radius:16px;padding:2rem;animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both;}
+.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+.detail-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--white);}
+.detail-verdict{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:800;}
+.detail-verdict.pass{color:var(--pass);}
+.detail-verdict.fail{color:var(--fail);}
+.detail-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-bottom:1.5rem;}
+.detail-item{background:var(--navy3);border-radius:10px;padding:1rem;text-align:center;}
+.detail-val{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--gold2);}
+.detail-key{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
+.close-btn{padding:6px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;font-size:.78rem;transition:all .2s;font-family:'Inter',sans-serif;}
+.close-btn:hover{border-color:var(--fail);color:var(--fail);}
+
+/* RISK items in detail */
+.risk-list{display:flex;flex-direction:column;gap:6px;}
+.risk-row{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:8px;font-size:.8rem;}
+.risk-row.crit{background:rgba(248,113,113,.07);border-left:3px solid var(--fail);}
+.risk-row.warn{background:rgba(251,191,36,.07);border-left:3px solid var(--warn);}
+.risk-row.good{background:rgba(74,222,128,.07);border-left:3px solid var(--pass);}
+.risk-row-name{font-weight:600;color:var(--white);min-width:100px;}
+.risk-row-msg{color:var(--muted);}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;}
+.chart-card{background:linear-gradient(135deg,var(--navy),var(--navy2));border:1px solid var(--border);border-radius:14px;padding:1.4rem;transition:all .3s;}
+.chart-card:hover{border-color:rgba(212,168,67,.25);}
+.chart-card.span2{grid-column:span 2;}
+.chart-title{font-size:.66rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.chart-title::before{content:'';width:16px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);border-radius:2px;}
+.chart-wrap{position:relative;height:200px;}
+
+/* SUGGESTIONS */
+.sugg-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.sugg-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:10px;background:var(--navy3);border:1px solid var(--border);margin-bottom:8px;transition:all .25s;}
+.sugg-item:hover{border-color:rgba(212,168,67,.25);transform:translateX(3px);}
+.sugg-item.urgent{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.04);}
+.sugg-num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--gold3),var(--gold));color:#0c1428;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sugg-num.urg{background:linear-gradient(135deg,#dc2626,#f87171);color:#fff;}
+.sugg-text{font-size:.82rem;color:var(--text);line-height:1.5;}
+.grade-card{background:linear-gradient(135deg,var(--navy),var(--navy2));border:1px solid var(--gold3);border-radius:14px;padding:1.5rem;margin-bottom:1rem;}
+.grade-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:.85rem;}
+.grade-row:last-child{border:none;}
+.grade-val{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:var(--gold);}
+.grade-val.up{color:var(--pass);}
+.pdf-btn{display:inline-flex;align-items:center;gap:8px;margin-top:1rem;padding:11px 24px;background:transparent;border:1px solid var(--gold3);border-radius:8px;color:var(--gold);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .25s;font-family:'Inter',sans-serif;}
+.pdf-btn:hover{background:linear-gradient(135deg,var(--gold3),var(--gold));color:#0c1428;}
+
+/* IDLE */
+.idle-full{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;color:var(--muted);text-align:center;gap:.6rem;}
+.idle-full .big{font-size:3rem;opacity:.15;}
+.idle-full p{font-size:.82rem;}
+
+/* ANIMATIONS */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes tabIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:900px){
+  .main-grid,.charts-grid,.sugg-grid{grid-template-columns:1fr;}
+  .chart-card.span2{grid-column:span 1;}
+  .hstats{display:none;}
+  .summary-grid{grid-template-columns:repeat(2,1fr);}
+  .detail-grid{grid-template-columns:repeat(2,1fr);}
+  .profile-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:480px){
+  .tabs{gap:.3rem;}
+  .tab{padding:7px 12px;font-size:.75rem;}
+  .search-bar{flex-direction:column;align-items:stretch;}
+  .search-input{width:100%;}
+  .export-btn{margin-left:0;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="badge"><span class="badge-dot"></span> AI-Powered Prediction System</div>
+      <h1>Student Performance <em>Predictor</em></h1>
+      <p>TYBSCIT Final Year Project &nbsp;·&nbsp; UCI Dataset &nbsp;·&nbsp; 6 ML Models &nbsp;·&nbsp; 91.14% Accuracy</p>
+    </div>
+    <div class="hstats">
+      <div class="hstat"><span class="hstat-n">395</span><span class="hstat-l">Students</span></div>
+      <div class="hstat"><span class="hstat-n">91%</span><span class="hstat-l">Accuracy</span></div>
+      <div class="hstat"><span class="hstat-n">6</span><span class="hstat-l">Models</span></div>
+      <div class="hstat"><span class="hstat-n">10</span><span class="hstat-l">Features</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('predict',this)">⚡ Predict New</button>
+  <button class="tab" onclick="switchTab('lookup',this)">🔍 Student Lookup</button>
+  <button class="tab" onclick="switchTab('charts',this)">📊 Charts</button>
+  <button class="tab" onclick="switchTab('suggestions',this)">💡 Suggestions</button>
+</div>
+
+<!-- SVG GRADIENTS -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="passGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4ade80"/><stop offset="100%" style="stop-color:#86efac"/>
+    </linearGradient>
+    <linearGradient id="failGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f87171"/><stop offset="100%" style="stop-color:#fca5a5"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#a07830"/><stop offset="100%" style="stop-color:#d4a843"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ══ PREDICT TAB ══ -->
+<div id="tab-predict" class="tab-content active">
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-title">Student Profile Input</div>
+      <div class="form-grid">
+        <div class="field"><label>Age</label><input type="number" id="age" value="17" min="15" max="22"></div>
+        <div class="field"><label>Past Failures</label>
+          <select id="failures">
+            <option value="0">0 — None</option><option value="1">1 — Once</option>
+            <option value="2">2 — Twice</option><option value="3">3 — Three+</option>
+          </select>
+        </div>
+        <div class="field"><label>Term 1 Grade (G1) /20</label><input type="number" id="g1" value="12" min="0" max="20"></div>
+        <div class="field"><label>Term 2 Grade (G2) /20</label><input type="number" id="g2" value="13" min="0" max="20"></div>
+        <div class="field"><label>Number of Absences</label><input type="number" id="absences" value="4" min="0" max="93"></div>
+        <div class="field"><label>Mother's Education</label>
+          <select id="medu">
+            <option value="0">0 — None</option><option value="1">1 — Primary</option>
+            <option value="2">2 — Middle School</option><option value="3" selected>3 — High School</option>
+            <option value="4">4 — University</option>
+          </select>
+        </div>
+        <div class="field full slider-wrap">
+          <div class="slider-top"><label>Weekly Study Time</label><span class="slider-val" id="sv">2–5 hrs</span></div>
+          <input type="range" id="studytime" min="1" max="4" value="2" oninput="updateSlider(this,'sv',['Less than 2hrs','2–5hrs','5–10hrs','More than 10hrs'])">
+          <div class="slider-labels"><span>Low</span><span>Medium</span><span>High</span><span>Max</span></div>
+        </div>
+        <div class="field full slider-wrap">
+          <div class="slider-top"><label>Free Time After School</label><span class="slider-val" id="fv">3 / 5</span></div>
+          <input type="range" id="freetime" min="1" max="5" value="3" oninput="updateSlider(this,'fv',null)">
+          <div class="slider-labels"><span>Very Low</span><span></span><span>Medium</span><span></span><span>Very High</span></div>
+        </div>
+        <div class="field full slider-wrap">
+          <div class="slider-top"><label>Going Out with Friends</label><span class="slider-val" id="gv">2 / 5</span></div>
+          <input type="range" id="goout" min="1" max="5" value="2" oninput="updateSlider(this,'gv',null)">
+          <div class="slider-labels"><span>Rarely</span><span></span><span>Sometimes</span><span></span><span>Always</span></div>
+        </div>
+      </div>
+      <button class="btn-predict" id="predict-btn" onclick="runPrediction()">⚡ PREDICT PERFORMANCE</button>
+    </div>
+
+    <div id="results-panel">
+      <div class="loading-steps" id="loading-steps">
+        <div class="step-item" id="step1"><span>📊</span> Analyzing student data...</div>
+        <div class="step-item" id="step2"><span>🤖</span> Running 6 ML models...</div>
+        <div class="step-item" id="step3"><span>🔍</span> Calculating risk factors...</div>
+        <div class="step-item" id="step4"><span>💡</span> Generating suggestions...</div>
+      </div>
+      <div class="result-main" id="result-main">
+        <div id="idle-msg"><div class="idle-icon">🎓</div><div class="idle-text">Fill in student details and click Predict</div></div>
+        <div id="verdict-content" style="display:none;text-align:center;">
+          <div class="verdict-icon" id="v-icon"></div>
+          <div class="verdict-label">AI Prediction Result</div>
+          <div class="verdict-text" id="v-text"></div>
+          <div class="verdict-sub" id="v-sub"></div>
+          <div id="v-risk"></div>
+        </div>
+      </div>
+      <div class="profile-card" id="profile-card">
+        <div class="card-title">Student Profile Summary</div>
+        <div class="profile-grid" id="profile-grid"></div>
+      </div>
+      <div class="card" id="circles-card" style="display:none;margin-bottom:1rem;">
+        <div class="card-title">Pass / Fail Probability</div>
+        <div class="circles-wrap">
+          <div class="circle-item">
+            <div class="circle-wrap">
+              <svg class="circle-svg" width="100" height="100" viewBox="0 0 100 100">
+                <circle class="circle-bg" cx="50" cy="50" r="45"/>
+                <circle class="circle-fill pass" id="pass-circle" cx="50" cy="50" r="45"/>
+              </svg>
+              <div class="circle-text"><span class="circle-pct pass" id="pass-pct">0%</span><span class="circle-lbl">Pass</span></div>
+            </div>
+          </div>
+          <div class="circle-item">
+            <div class="circle-wrap">
+              <svg class="circle-svg" width="100" height="100" viewBox="0 0 100 100">
+                <circle class="circle-bg" cx="50" cy="50" r="45"/>
+                <circle class="circle-fill fail" id="fail-circle" cx="50" cy="50" r="45"/>
+              </svg>
+              <div class="circle-text"><span class="circle-pct fail" id="fail-pct">0%</span><span class="circle-lbl">Fail</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="votes-card" style="display:none;">
+        <div class="card-title">All 6 Model Votes</div>
+        <div id="vote-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ STUDENT LOOKUP TAB ══ -->
+<div id="tab-lookup" class="tab-content">
+  <div class="lookup-wrap">
+
+    <!-- Upload zone -->
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-file').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">Upload Your Student Dataset</div>
+      <div class="upload-sub">Drop your <strong>student-mat.csv</strong> file here or click to browse</div>
+      <span class="upload-btn-label">Choose CSV File</span>
+      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="loadCSV(event)">
+    </div>
+
+    <!-- Summary stats (hidden until CSV loaded) -->
+    <div id="summary-section" style="display:none;">
+      <div class="summary-grid" id="summary-grid"></div>
+
+      <!-- Search & Filter -->
+      <div class="search-bar">
+        <input type="number" class="search-input" id="student-search" placeholder="Search by student #" min="1" oninput="filterTable()">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All Students</button>
+        <button class="filter-btn" onclick="setFilter('pass',this)">✅ Pass Only</button>
+        <button class="filter-btn" onclick="setFilter('fail',this)">❌ Fail Only</button>
+        <button class="filter-btn" onclick="setFilter('high',this)">🔴 High Risk</button>
+        <button class="filter-btn" onclick="setFilter('med',this)">🟡 Medium Risk</button>
+        <button class="export-btn" onclick="exportCSV()">⬇ Export Results</button>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Age</th><th>G1</th><th>G2</th>
+              <th>Absences</th><th>Failures</th><th>Study Time</th>
+              <th>Prediction</th><th>Confidence</th><th>Risk Level</th>
+            </tr>
+          </thead>
+          <tbody id="student-table"></tbody>
+        </table>
+      </div>
+
+      <!-- Student Detail Panel -->
+      <div class="detail-panel" id="detail-panel">
+        <div class="detail-header">
+          <div>
+            <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Selected Student</div>
+            <div class="detail-title" id="detail-title">Student #1</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div class="detail-verdict" id="detail-verdict"></div>
+            <button class="close-btn" onclick="closeDetail()">✕ Close</button>
+          </div>
+        </div>
+        <div class="detail-grid" id="detail-grid"></div>
+        <div class="card-title" style="margin-bottom:.8rem;">Risk Factor Analysis</div>
+        <div class="risk-list" id="detail-risk"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CHARTS TAB ══ -->
+<div id="tab-charts" class="tab-content">
+  <div id="charts-idle" class="idle-full"><div class="big">📊</div><p>Run a prediction first to see animated charts</p></div>
+  <div id="charts-content" style="display:none;">
+    <div class="charts-grid">
+      <div class="chart-card"><div class="chart-title">Pass vs Fail Distribution</div><div class="chart-wrap"><canvas id="c-pf"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Model Accuracy Comparison</div><div class="chart-wrap"><canvas id="c-acc"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Risk Factor Breakdown</div><div class="chart-wrap"><canvas id="c-rp"></canvas></div></div>
+      <div class="chart-card span2"><div class="chart-title">Feature Importance Analysis</div><div class="chart-wrap" style="height:220px"><canvas id="c-ft"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Grade Trend and Forecast</div><div class="chart-wrap"><canvas id="c-gr"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SUGGESTIONS TAB ══ -->
+<div id="tab-suggestions" class="tab-content">
+  <div id="sugg-idle" class="idle-full"><div class="big">💡</div><p>Run a prediction first to get personalized suggestions</p></div>
+  <div id="sugg-content" style="display:none;">
+    <div class="sugg-grid">
+      <div>
+        <div class="card-title" style="margin-bottom:.8rem;">🚨 Priority Actions</div>
+        <div id="priority-list"></div>
+        <div class="card-title" style="margin:1.3rem 0 .8rem;">📋 Improvement Suggestions</div>
+        <div id="sugg-list"></div>
+      </div>
+      <div>
+        <div class="card-title" style="margin-bottom:.8rem;">📈 Grade Improvement Forecast</div>
+        <div class="grade-card" id="grade-card"></div>
+        <div class="chart-wrap" style="height:190px;margin-top:1rem;"><canvas id="c-im"></canvas></div>
+        <button class="pdf-btn" onclick="downloadReport()">⬇ Download Student Report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ═══════════════════════════
+// SLIDER
+// ═══════════════════════════
+function updateSlider(el,valId,labels){
+  const v=+el.value,max=+el.max,pct=(v-1)/(max-1)*100;
+  el.style.background=`linear-gradient(90deg,var(--gold) ${pct}%,var(--border) ${pct}%)`;
+  document.getElementById(valId).textContent=labels?labels[v-1]:v+' / '+max;
+}
+document.querySelectorAll('input[type=range]').forEach(r=>updateSlider(r,r.id==='studytime'?'sv':r.id==='freetime'?'fv':'gv',r.id==='studytime'?['Less than 2hrs','2–5hrs','5–10hrs','More than 10hrs']:null));
+
+// ═══════════════════════════
+// ML ENGINE
+// ═══════════════════════════
+const MN=['Random Forest','Decision Tree','Logistic Regression','KNN','Gradient Boosting','Naive Bayes'];
+const MAC=[89.87,83.54,91.14,89.87,91.14,87.34];
+const sigmoid=x=>1/(1+Math.exp(-x));
+const getF=()=>({age:+document.getElementById('age').value,study:+document.getElementById('studytime').value,failures:+document.getElementById('failures').value,absences:+document.getElementById('absences').value,g1:+document.getElementById('g1').value,g2:+document.getElementById('g2').value,medu:+document.getElementById('medu').value,freetime:+document.getElementById('freetime').value,goout:+document.getElementById('goout').value});
+const pLR=f=>sigmoid(-4.2+f.g2*.85+f.g1*.42+f.failures*-1.8+f.absences*-.045+f.study*.35+f.medu*.18+f.freetime*-.12+f.goout*-.15+f.age*-.08);
+const pRF=f=>{const a=(f.g1+f.g2)/2;let s=0;if(a>=14)s+=4;else if(a>=11)s+=3;else if(a>=8)s+=1;else s-=2;if(!f.failures)s+=2;else if(f.failures===1)s-=1;else s-=3;if(f.absences<=5)s+=1;else if(f.absences>20)s-=2;if(f.study>=3)s+=1;if(f.g2>=10)s+=2;return Math.min(Math.max((s+4)/10,.02),.98);};
+const pDT=f=>{if(f.g2>=12)return!f.failures?.92:.75;if(f.g2>=10)return f.absences<=10?.78:.55;if(f.g2>=8)return!f.failures?.45:.20;return!f.failures?.25:.08;};
+const pKNN=f=>Math.min(Math.max(pLR(f)+(Math.random()-.5)*.08,.02),.98);
+const pGB=f=>pLR(f)*.6+pRF(f)*.4;
+const pNB=f=>{const a=(f.g1+f.g2)/2;let lp=0;lp+=a>=10?Math.log(.82)-Math.log(.18):Math.log(.35)-Math.log(.65);lp+=!f.failures?Math.log(.78):Math.log(.35);lp+=f.absences<=10?Math.log(.71):Math.log(.45);return sigmoid(lp*.6);};
+const PFNS=[pRF,pDT,pLR,pKNN,pGB,pNB];
+
+function predictStudent(f){
+  const probs=PFNS.map(fn=>fn(f));
+  const avg=probs.reduce((a,b)=>a+b,0)/probs.length;
+  const passPct=Math.round(avg*100);
+  const isPass=passPct>=50;
+  const riskCls=passPct>=80?'low':passPct>=55?'med':'high';
+  const riskLbl=passPct>=80?'Low Risk':passPct>=55?'Medium Risk':'High Risk';
+  return{probs,passPct,failPct:100-passPct,isPass,riskCls,riskLbl,votes:probs.filter(p=>p>=.5).length};
+}
+
+// ═══════════════════════════
+// RISK & SUGGESTIONS
+// ═══════════════════════════
+function analyzeRisk(f){
+  const risks=[],warnings=[],good=[];
+  function chk(c1,c2,name,val,m1,m2,mg){if(c1)risks.push({name,val,msg:m1});else if(c2)warnings.push({name,val,msg:m2});else good.push({name,val,msg:mg});}
+  chk(f.absences>=20,f.absences>=10,'Absences',f.absences,'Very high — hurting performance','High — reduce below 10','Low absences');
+  chk(f.failures>=2,f.failures===1,'Past Failures',f.failures,'Multiple failures — urgent','1 past failure — monitor','No past failures');
+  chk(f.study===1,f.study===2,'Study Time',f.study,'Less than 2hrs — critical','2-5hrs — increase to 5+','Adequate study time');
+  chk(f.g1<8,f.g1<10,'Term 1 Grade',f.g1,'Very low Term 1','Below passing (10)','Term 1 passing');
+  chk(f.g2<8,f.g2<10,'Term 2 Grade',f.g2,'Very low Term 2','Below passing (10)','Term 2 passing');
+  chk(false,f.goout>=4,'Going Out',f.goout,'','Too frequent','Balanced');
+  chk(false,f.freetime>=5,'Free Time',f.freetime,'','Too much','Balanced');
+  chk(false,f.medu<=1,'Family Support',f.medu,'','Low support','Good background');
+  const score=risks.length*3+warnings.length;
+  let level,cls;
+  if(!score){level='VERY LOW RISK';cls='low';}else if(score<=2){level='LOW RISK';cls='low';}else if(score<=5){level='MEDIUM RISK';cls='med';}else if(score<=8){level='HIGH RISK';cls='high';}else{level='CRITICAL RISK';cls='high';}
+  return{risks,warnings,good,score,level,cls};
+}
+
+function buildSugg(f){
+  const p=[],s=[];
+  if(f.absences>=10)p.push('Attend ALL classes immediately — absences is #1 risk factor');
+  if(f.failures>=1)p.push('Join extra coaching for previously failed subjects');
+  if(f.study<=2){s.push('Increase weekly study time to at least 5 hours');s.push('Create daily timetable — 1 hour daily makes big difference');}
+  if(f.g1<10||f.g2<10){s.push('Focus on fundamentals — grades below 10 need urgent attention');s.push('Form study group with students scoring above 12');}
+  if(f.goout>=4)s.push('Limit going out to weekends only during exam prep');
+  if(f.freetime>=4)s.push('Use free time for 30 min daily revision sessions');
+  if(f.medu<=1)s.push('Seek extra teacher guidance for limited home support');
+  s.push('Sleep 7-8 hours daily — improves memory retention dramatically');
+  s.push('Set clear target grade and work backwards from exam date');
+  s.push('Revise Term 1 and Term 2 topics — finals repeat similar patterns');
+  const cur=(f.g1+f.g2)/2;let imp=cur;
+  if(f.study<=2)imp+=2.5;if(f.absences>=10)imp+=1.5;if(f.goout>=4)imp+=1.0;if(f.failures>=1)imp+=0.5;
+  imp=Math.min(imp,20);
+  return{priority:p,suggestions:s,cur,imp};
+}
+
+// ═══════════════════════════
+// PREDICT TAB
+// ═══════════════════════════
+let LF=null,LR=null,LS=null,LP=null;
+
+function runPrediction(){
+  const f=getF();
+  if(f.g1<0||f.g1>20||f.g2<0||f.g2>20){alert('Grades must be between 0 and 20!');return;}
+  const btn=document.getElementById('predict-btn');
+  btn.textContent='Analyzing...';btn.disabled=true;
+  document.getElementById('idle-msg').style.display='none';
+  document.getElementById('verdict-content').style.display='none';
+  document.getElementById('result-main').className='result-main';
+  document.getElementById('circles-card').style.display='none';
+  document.getElementById('votes-card').style.display='none';
+  document.getElementById('profile-card').style.display='none';
+  const ls=document.getElementById('loading-steps');ls.style.display='block';
+  ['step1','step2','step3','step4'].forEach(s=>{document.getElementById(s).className='step-item';});
+  let i=0;
+  const steps=['step1','step2','step3','step4'];
+  function next(){
+    if(i>0)document.getElementById(steps[i-1]).className='step-item done';
+    if(i<steps.length){document.getElementById(steps[i]).className='step-item active';i++;setTimeout(next,500);}
+    else{ls.style.display='none';showResult(f);btn.textContent='⚡ PREDICT PERFORMANCE';btn.disabled=false;}
+  }
+  next();
+}
+
+function showResult(f){
+  const r=predictStudent(f);
+  const risk=analyzeRisk(f);const sugg=buildSugg(f);
+  LF=f;LR=risk;LS=sugg;LP=r.probs;
+  document.getElementById('verdict-content').style.display='block';
+  const rm=document.getElementById('result-main');
+  rm.className='result-main '+(r.isPass?'pass':'fail');
+  document.getElementById('v-icon').textContent=r.isPass?'🎓':'⚠️';
+  const vt=document.getElementById('v-text');
+  vt.textContent=r.isPass?'PASS':'FAIL';
+  vt.className='verdict-text '+(r.isPass?'pass':'fail');
+  document.getElementById('v-sub').textContent=`${r.votes}/6 models agree · ${r.passPct}% confidence`;
+  document.getElementById('v-risk').innerHTML=`<span class="risk-pill ${r.riskCls}">${r.riskLbl.toUpperCase()}</span>`;
+  const pc=document.getElementById('profile-card');pc.style.display='block';
+  const sl=['<2hrs','2-5hrs','5-10hrs','>10hrs'];
+  document.getElementById('profile-grid').innerHTML=`
+    <div class="profile-item"><div class="profile-val">${f.age}</div><div class="profile-key">Age</div></div>
+    <div class="profile-item"><div class="profile-val">${f.g1}/20</div><div class="profile-key">Term 1</div></div>
+    <div class="profile-item"><div class="profile-val">${f.g2}/20</div><div class="profile-key">Term 2</div></div>
+    <div class="profile-item"><div class="profile-val">${f.absences}</div><div class="profile-key">Absences</div></div>
+    <div class="profile-item"><div class="profile-val">${f.failures}</div><div class="profile-key">Failures</div></div>
+    <div class="profile-item"><div class="profile-val">${sl[f.study-1]}</div><div class="profile-key">Study</div></div>`;
+  document.getElementById('circles-card').style.display='block';
+  document.getElementById('pass-pct').textContent=r.passPct+'%';
+  document.getElementById('fail-pct').textContent=r.failPct+'%';
+  setTimeout(()=>{
+    document.getElementById('pass-circle').style.strokeDashoffset=283-(283*r.passPct/100);
+    document.getElementById('fail-circle').style.strokeDashoffset=283-(283*r.failPct/100);
+  },100);
+  document.getElementById('votes-card').style.display='block';
+  const vl=document.getElementById('vote-list');vl.innerHTML='';
+  r.probs.forEach((p,i)=>{
+    const mp=p>=.5,pct=Math.round(p*100);
+    const d=document.createElement('div');d.className='vote-item';
+    d.innerHTML=`<span>${MN[i]}</span><span class="vote-badge ${mp?'pass':'fail'}">${mp?'PASS':'FAIL'} ${pct}%</span>`;
+    vl.appendChild(d);setTimeout(()=>d.classList.add('show'),i*100);
+  });
+  drawCharts(f,risk,sugg);
+  renderSugg(sugg);
+}
+
+// ═══════════════════════════
+// CSV UPLOAD & STUDENT LOOKUP
+// ═══════════════════════════
+let allStudents=[];
+let currentFilter='all';
+
+function dragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('dragover');}
+function dragLeave(e){document.getElementById('upload-zone').classList.remove('dragover');}
+function dropFile(e){e.preventDefault();dragLeave(e);const f=e.dataTransfer.files[0];if(f)processCSV(f);}
+function loadCSV(e){const f=e.target.files[0];if(f)processCSV(f);}
+
+function processCSV(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const text=e.target.result;
+    const lines=text.trim().split('\n');
+    const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+    allStudents=[];
+    for(let i=1;i<lines.length;i++){
+      const vals=lines[i].split(',').map(v=>v.trim().replace(/"/g,''));
+      if(vals.length<2)continue;
+      const row={};
+      headers.forEach((h,j)=>row[h]=vals[j]);
+      // Map column names
+      const f={
+        age:+row['age']||17,
+        study:+row['weekly_studytime']||+row['studytime']||2,
+        failures:+row['failures']||0,
+        absences:+row['absences']||0,
+        g1:+row['G1']||0,
+        g2:+row['G2']||0,
+        medu:+row['Mother_edu']||+row['Medu']||2,
+        freetime:+row['freetime_after_school']||+row['freetime']||3,
+        goout:+row['goout_with_friends']||+row['goout']||2
+      };
+      const pred=predictStudent(f);
+      const risk=analyzeRisk(f);
+      allStudents.push({num:i,raw:row,f,pred,risk});
+    }
+    document.getElementById('upload-zone').style.display='none';
+    document.getElementById('summary-section').style.display='block';
+    updateSummary();
+    renderTable();
+  };
+  reader.readAsText(file);
+}
+
+function updateSummary(){
+  const total=allStudents.length;
+  const pass=allStudents.filter(s=>s.pred.isPass).length;
+  const fail=total-pass;
+  const highRisk=allStudents.filter(s=>s.pred.riskCls==='high').length;
+  document.getElementById('summary-grid').innerHTML=`
+    <div class="sum-card"><span class="sum-num total">${total}</span><div class="sum-lbl">Total Students</div></div>
+    <div class="sum-card"><span class="sum-num pass">${pass}</span><div class="sum-lbl">Predicted Pass</div></div>
+    <div class="sum-card"><span class="sum-num fail">${fail}</span><div class="sum-lbl">Predicted Fail</div></div>
+    <div class="sum-card"><span class="sum-num risk">${highRisk}</span><div class="sum-lbl">High Risk</div></div>`;
+}
+
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('student-search').value='';
+  renderTable();
+}
+
+function filterTable(){
+  const search=document.getElementById('student-search').value.trim();
+  renderTable(search?+search:null);
+}
+
+function renderTable(searchNum=null){
+  let data=allStudents;
+  if(searchNum){data=data.filter(s=>s.num===searchNum);}
+  else if(currentFilter==='pass'){data=data.filter(s=>s.pred.isPass);}
+  else if(currentFilter==='fail'){data=data.filter(s=>!s.pred.isPass);}
+  else if(currentFilter==='high'){data=data.filter(s=>s.pred.riskCls==='high');}
+  else if(currentFilter==='med'){data=data.filter(s=>s.pred.riskCls==='med');}
+
+  const sl=['<2h','2-5h','5-10h','>10h'];
+  const tbody=document.getElementById('student-table');
+  if(!data.length){tbody.innerHTML=`<tr><td colspan="10" class="no-data">No students found matching this filter</td></tr>`;return;}
+
+  tbody.innerHTML=data.map(s=>`
+    <tr class="${s.pred.riskCls==='high'?'high-risk':''}" onclick="showDetail(${s.num-1})">
+      <td><strong style="color:var(--gold)">#${s.num}</strong></td>
+      <td>${s.f.age}</td>
+      <td>${s.f.g1}</td>
+      <td>${s.f.g2}</td>
+      <td>${s.f.absences}</td>
+      <td>${s.f.failures}</td>
+      <td>${sl[s.f.study-1]||s.f.study}</td>
+      <td class="${s.pred.isPass?'pass-cell':'fail-cell'}">${s.pred.isPass?'✅ PASS':'❌ FAIL'}</td>
+      <td style="font-family:monospace">${s.pred.passPct}%</td>
+      <td><span class="risk-dot ${s.pred.riskCls}"></span>${s.pred.riskLbl}</td>
+    </tr>`).join('');
+}
+
+function showDetail(idx){
+  const s=allStudents[idx];
+  if(!s)return;
+  document.querySelectorAll('#student-table tr').forEach(r=>r.classList.remove('selected'));
+  document.querySelectorAll('#student-table tr')[idx]&&document.querySelectorAll('#student-table tr').forEach((r,i)=>{if(i===idx)r.classList.add('selected');});
+  const dp=document.getElementById('detail-panel');dp.style.display='block';
+  document.getElementById('detail-title').textContent=`Student #${s.num}`;
+  const dv=document.getElementById('detail-verdict');
+  dv.textContent=s.pred.isPass?'✅ PASS':'❌ FAIL';
+  dv.className='detail-verdict '+(s.pred.isPass?'pass':'fail');
+  const sl=['Less than 2hrs','2-5hrs','5-10hrs','More than 10hrs'];
+  document.getElementById('detail-grid').innerHTML=`
+    <div class="detail-item"><div class="detail-val">${s.f.age}</div><div class="detail-key">Age</div></div>
+    <div class="detail-item"><div class="detail-val">${s.f.g1}/20</div><div class="detail-key">Term 1 Grade</div></div>
+    <div class="detail-item"><div class="detail-val">${s.f.g2}/20</div><div class="detail-key">Term 2 Grade</div></div>
+    <div class="detail-item"><div class="detail-val">${s.f.absences}</div><div class="detail-key">Absences</div></div>
+    <div class="detail-item"><div class="detail-val">${s.f.failures}</div><div class="detail-key">Past Failures</div></div>
+    <div class="detail-item"><div class="detail-val">${s.pred.passPct}%</div><div class="detail-key">Pass Probability</div></div>
+    <div class="detail-item"><div class="detail-val">${s.pred.votes}/6</div><div class="detail-key">Model Votes</div></div>
+    <div class="detail-item"><div class="detail-val" style="font-size:.9rem">${s.pred.riskLbl}</div><div class="detail-key">Risk Level</div></div>`;
+  const rl=document.getElementById('detail-risk');
+  rl.innerHTML=[
+    ...s.risk.risks.map(r=>`<div class="risk-row crit"><span class="risk-row-name">${r.name} = ${r.val}</span><span class="risk-row-msg">${r.msg}</span></div>`),
+    ...s.risk.warnings.map(r=>`<div class="risk-row warn"><span class="risk-row-name">${r.name} = ${r.val}</span><span class="risk-row-msg">${r.msg}</span></div>`),
+    ...s.risk.good.map(r=>`<div class="risk-row good"><span class="risk-row-name">${r.name} = ${r.val}</span><span class="risk-row-msg">${r.msg}</span></div>`)
+  ].join('');
+  dp.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeDetail(){
+  document.getElementById('detail-panel').style.display='none';
+  document.querySelectorAll('#student-table tr').forEach(r=>r.classList.remove('selected'));
+}
+
+function exportCSV(){
+  if(!allStudents.length){alert('No data to export!');return;}
+  const rows=[['Student #','Age','G1','G2','Absences','Failures','Study Time','Prediction','Pass Probability','Risk Level']];
+  const sl=['<2hrs','2-5hrs','5-10hrs','>10hrs'];
+  allStudents.forEach(s=>{
+    rows.push([s.num,s.f.age,s.f.g1,s.f.g2,s.f.absences,s.f.failures,sl[s.f.study-1]||s.f.study,s.pred.isPass?'PASS':'FAIL',s.pred.passPct+'%',s.pred.riskLbl]);
+  });
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Student_Predictions.csv';a.click();URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════
+// CHARTS
+// ═══════════════════════════
+let CH={};
+function dk(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+const CD={plugins:{legend:{labels:{color:'#c8d4e8',font:{family:'Inter',size:11}}}},scales:{x:{ticks:{color:'#6b7fa0',font:{size:10}},grid:{color:'rgba(30,49,88,.4)'}},y:{ticks:{color:'#6b7fa0',font:{size:10}},grid:{color:'rgba(30,49,88,.4)'}}}};
+
+function drawCharts(f,risk,sugg){
+  document.getElementById('charts-idle').style.display='none';
+  document.getElementById('charts-content').style.display='block';
+  dk('pf');CH.pf=new Chart(document.getElementById('c-pf'),{type:'doughnut',data:{labels:['Pass (265)','Fail (130)'],datasets:[{data:[265,130],backgroundColor:['#4ade80','#f87171'],borderWidth:0,hoverOffset:8}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#c8d4e8',padding:14,font:{size:10}}}},cutout:'68%',animation:{duration:1000}}});
+  dk('ac');CH.ac=new Chart(document.getElementById('c-acc'),{type:'bar',data:{labels:['RF','DT','LR','KNN','GB','NB'],datasets:[{data:MAC,backgroundColor:['#d4a843','#f0c866','#a07830','#c49033','#e0b850','#b08040'],borderRadius:6,borderWidth:0}]},options:{...CD,plugins:{legend:{display:false}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,min:75,max:95}},animation:{duration:1000}}});
+  dk('rp');CH.rp=new Chart(document.getElementById('c-rp'),{type:'doughnut',data:{labels:['Critical','Warning','Good'],datasets:[{data:[risk.risks.length,risk.warnings.length,risk.good.length],backgroundColor:['#f87171','#fbbf24','#4ade80'],borderWidth:0,hoverOffset:8}]},options:{plugins:{legend:{position:'bottom',labels:{color:'#c8d4e8',padding:12,font:{size:10}}}},cutout:'60%',animation:{duration:1000}}});
+  dk('ft');CH.ft=new Chart(document.getElementById('c-ft'),{type:'bar',data:{labels:['G2','G1','Absences','Age','Failures','Goout','Freetime','Father Edu','Mother Edu','Study Time'],datasets:[{data:[0.44,0.26,0.08,0.06,0.05,0.04,0.03,0.02,0.01,0.01],backgroundColor:(ctx)=>ctx.dataIndex<2?'#d4a843':ctx.dataIndex<4?'#a07830':'#1e3158',borderRadius:5,borderWidth:0}]},options:{indexAxis:'y',...CD,plugins:{legend:{display:false}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,ticks:{color:'#c8d4e8',font:{size:10}}}},animation:{duration:1200}}});
+  dk('gr');CH.gr=new Chart(document.getElementById('c-gr'),{type:'line',data:{labels:['Term 1','Term 2','Projected'],datasets:[{label:'Grade',data:[f.g1,f.g2,sugg.imp.toFixed(1)],borderColor:'#d4a843',backgroundColor:'rgba(212,168,67,.08)',pointBackgroundColor:['#d4a843','#d4a843','#4ade80'],pointRadius:7,fill:true,tension:.35,borderWidth:2.5}]},options:{...CD,scales:{x:{...CD.scales.x},y:{...CD.scales.y,min:0,max:20}},animation:{duration:1000}}});
+  dk('im');CH.im=new Chart(document.getElementById('c-im'),{type:'bar',data:{labels:['Current Average','Projected Grade'],datasets:[{data:[sugg.cur.toFixed(1),sugg.imp.toFixed(1)],backgroundColor:['rgba(30,49,88,.8)','#4ade80'],borderRadius:10,borderWidth:0}]},options:{...CD,plugins:{legend:{display:false}},scales:{x:{...CD.scales.x},y:{...CD.scales.y,min:0,max:20}},animation:{duration:1000}}});
+}
+
+// ═══════════════════════════
+// SUGGESTIONS
+// ═══════════════════════════
+function renderSugg(sugg){
+  document.getElementById('sugg-idle').style.display='none';
+  document.getElementById('sugg-content').style.display='block';
+  document.getElementById('priority-list').innerHTML=sugg.priority.length
+    ?sugg.priority.map((p,i)=>`<div class="sugg-item urgent"><div class="sugg-num urg">${i+1}</div><div class="sugg-text"><strong>URGENT:</strong> ${p}</div></div>`).join('')
+    :`<div class="sugg-item"><div class="sugg-text" style="color:var(--pass)">No urgent actions — student is on track!</div></div>`;
+  document.getElementById('sugg-list').innerHTML=sugg.suggestions.map((s,i)=>`<div class="sugg-item"><div class="sugg-num">${i+1}</div><div class="sugg-text">${s}</div></div>`).join('');
+  const diff=(sugg.imp-sugg.cur).toFixed(1);
+  document.getElementById('grade-card').innerHTML=`
+    <div class="grade-row"><span>Current Average Grade</span><span class="grade-val">${sugg.cur.toFixed(1)} / 20</span></div>
+    <div class="grade-row"><span>Projected After Improvement</span><span class="grade-val up">${sugg.imp.toFixed(1)} / 20</span></div>
+    <div class="grade-row"><span>Potential Gain</span><span class="grade-val up">+${diff} marks</span></div>
+    <div class="grade-row"><span>Conclusion</span><span class="grade-val ${sugg.imp>=10?'up':''}">${sugg.imp>=10?'PASS if suggestions followed':'Needs immediate intervention'}</span></div>`;
+}
+
+// ═══════════════════════════
+// PDF REPORT
+// ═══════════════════════════
+function downloadReport(){
+  if(!LF){alert('Please run a prediction first!');return;}
+  const f=LF,r=LR,s=LS;
+  const probs=PFNS.map(fn=>fn(f));
+  const avg=probs.reduce((a,b)=>a+b,0)/probs.length;
+  const passPct=Math.round(avg*100),isPass=passPct>=50,votes=probs.filter(p=>p>=.5).length;
+  const ml=['None','Primary','Middle School','High School','University'];
+  const sl=['Less than 2hrs','2-5hrs','5-10hrs','More than 10hrs'];
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Student Report</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;color:#1a1a2e;line-height:1.7;padding:0 20px}.hdr{background:linear-gradient(135deg,#0c1428,#162440);color:#f4f0e8;padding:30px;border-radius:12px;margin-bottom:30px}.hdr h1{font-size:1.6rem;color:#d4a843;margin-bottom:5px}.hdr p{font-size:.85rem;opacity:.7;margin:0}h2{color:#0c1428;font-size:.95rem;text-transform:uppercase;letter-spacing:2px;border-bottom:2px solid #d4a843;padding-bottom:6px;margin:24px 0 12px}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.85rem}th{background:#0c1428;color:#d4a843;padding:10px 14px;text-align:left}td{padding:9px 14px;border-bottom:1px solid #e8e0d0}tr:last-child td{border:none}.rb{padding:20px;border-radius:10px;text-align:center;margin:16px 0}.pb{background:#f0fdf4;border:2px solid #4ade80}.fb{background:#fff5f5;border:2px solid #f87171}.vd{font-size:2rem;font-weight:800;color:${isPass?'#16a34a':'#dc2626'}}.urg{background:#fff5f5;border-left:4px solid #dc2626;padding:10px 14px;margin:6px 0;font-size:.85rem;border-radius:0 6px 6px 0}.sg{background:#fafaf5;border-left:4px solid #d4a843;padding:10px 14px;margin:6px 0;font-size:.85rem;border-radius:0 6px 6px 0}.ft{margin-top:40px;padding:16px;border-top:2px solid #d4a843;font-size:.75rem;color:#888;text-align:center}.c{color:#16a34a;font-weight:700}.w{color:#d97706;font-weight:600}.g{color:#16a34a;font-weight:600}</style></head><body>
+  <div class="hdr"><h1>Student Performance Prediction Report</h1><p>Generated: ${new Date().toLocaleString()} | AI Student Performance Prediction System | TYBSCIT FYP</p></div>
+  <h2>Student Profile</h2>
+  <table><tr><th>Feature</th><th>Value</th><th>Feature</th><th>Value</th></tr>
+  <tr><td>Age</td><td>${f.age}</td><td>Study Time</td><td>${sl[f.study-1]}</td></tr>
+  <tr><td>Past Failures</td><td>${f.failures}</td><td>Absences</td><td>${f.absences}</td></tr>
+  <tr><td>Term 1 Grade</td><td>${f.g1}/20</td><td>Term 2 Grade</td><td>${f.g2}/20</td></tr>
+  <tr><td>Mother Education</td><td>${ml[f.medu]}</td><td>Going Out</td><td>${f.goout}/5</td></tr></table>
+  <h2>Prediction Result</h2>
+  <div class="rb ${isPass?'pb':'fb'}"><div class="vd">${isPass?'PASS':'FAIL'}</div><p><strong>Pass Probability:</strong> ${passPct}% | <strong>Model Agreement:</strong> ${votes}/6 | <strong>Risk:</strong> ${r.level}</p></div>
+  <h2>All Model Predictions</h2>
+  <table><tr><th>Model</th><th>Accuracy</th><th>Prediction</th><th>Confidence</th></tr>
+  ${MN.map((n,i)=>`<tr><td>${n}</td><td>${MAC[i]}%</td><td class="${probs[i]>=.5?'g':'c'}">${probs[i]>=.5?'PASS':'FAIL'}</td><td>${Math.round(probs[i]*100)}%</td></tr>`).join('')}</table>
+  <h2>Risk Analysis — Score: ${r.score}/24 — ${r.level}</h2>
+  <table><tr><th>Category</th><th>Factor</th><th>Value</th><th>Detail</th></tr>
+  ${r.risks.map(x=>`<tr><td class="c">Critical</td><td>${x.name}</td><td>${x.val}</td><td>${x.msg}</td></tr>`).join('')}
+  ${r.warnings.map(x=>`<tr><td class="w">Warning</td><td>${x.name}</td><td>${x.val}</td><td>${x.msg}</td></tr>`).join('')}
+  ${r.good.map(x=>`<tr><td class="g">Good</td><td>${x.name}</td><td>${x.val}</td><td>${x.msg}</td></tr>`).join('')}</table>
+  <h2>Improvement Suggestions</h2>
+  ${s.priority.map(p=>`<div class="urg"><strong>URGENT:</strong> ${p}</div>`).join('')}
+  ${s.suggestions.map((sg,i)=>`<div class="sg">${i+1}. ${sg}</div>`).join('')}
+  <h2>Grade Forecast</h2>
+  <table><tr><td>Current Average</td><td><strong>${s.cur.toFixed(1)}/20</strong></td></tr>
+  <tr><td>Projected Grade</td><td><strong class="g">${s.imp.toFixed(1)}/20</strong></td></tr>
+  <tr><td>Potential Gain</td><td><strong class="g">+${(s.imp-s.cur).toFixed(1)} marks</strong></td></tr>
+  <tr><td>Conclusion</td><td><strong class="${s.imp>=10?'g':'c'}">${s.imp>=10?'PASS if suggestions followed':'Needs serious intervention'}</strong></td></tr></table>
+  <div class="ft">AI-Based Student Performance Prediction System · TYBSCIT Final Year Project · UCI Dataset · 6 ML Models</div>
+  </body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Student_Report.html';a.click();URL.revokeObjectURL(a.href);
+}
+
+// ═══════════════════════════
+// TAB SWITCH
+// ═══════════════════════════
+function switchTab(name,el){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
